@@ -1,13 +1,12 @@
 // ==UserScript==
 // @name         SPD helper (admin)
 // @namespace    spdchat-helper
-// @version      2.7.2
+// @version      2.7.3
 // @description  Worker panel + Google Sheets + active tickets + show top unread doctor in 'Люди' (whitelist) + People timers
 // @match        *://spdchat.ru/*
 // @match        *://*.spdchat.ru/*
 // @updateURL    https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/main/spd-helper-Admin.user.js
 // @downloadURL  https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/main/spd-helper-Admin.user.js
-
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
@@ -1168,6 +1167,7 @@
 
 
 })();
+
 
 
 
