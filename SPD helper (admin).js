@@ -5,8 +5,8 @@
 // @description  Worker panel + Google Sheets + active tickets + show top unread doctor in 'Люди' (whitelist) + People timers
 // @match        *://spdchat.ru/*
 // @match        *://*.spdchat.ru/*
-// @updateURL    https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(admin).txt
-// @downloadURL  https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(admin).txt
+// @updateURL    https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(admin).js
+// @downloadURL  https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(admin).js
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
@@ -1166,3 +1166,4 @@
 
 
 })();
+
