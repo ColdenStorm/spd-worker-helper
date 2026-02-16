@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         SPD helper (Версия для 1 линии)
+// @name         SPD helper (1 line)
 // @namespace    spdchat-helper
 // @version      2.6.9
 // @description  Worker panel: auto-send greeting (take ticket), topic select, close ticket, log to Google Sheets, show all active tickets with timers
@@ -1121,6 +1121,7 @@ makeDraggable(panel, drag);
   }, 200);
 
 })();
+
 
 
 
