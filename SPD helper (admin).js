@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         SPD helper (Склейка 2-х скриптов)
+// @name         SPD helper (admin)
 // @namespace    spdchat-helper
 // @version      2.7.1
 // @description  Worker panel + Google Sheets + active tickets + show top unread doctor in 'Люди' (whitelist) + People timers
@@ -1166,4 +1166,5 @@
 
 
 })();
+
 
