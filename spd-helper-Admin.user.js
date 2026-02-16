@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SPD helper (admin)
 // @namespace    spdchat-helper
-// @version      2.7.3
+// @version      2.7.4
 // @description  Worker panel + Google Sheets + active tickets + show top unread doctor in 'Люди' (whitelist) + People timers
 // @match        *://spdchat.ru/*
 // @match        *://*.spdchat.ru/*
@@ -14,7 +14,7 @@
 
 (function () {
   "use strict";
-
+//1223
   var PANEL_ID = "spd-worker-helper-panel";
 
   var DOCK_BTN_ID = "spd-worker-dock-btn";
@@ -1167,6 +1167,7 @@
 
 
 })();
+
 
 
 
