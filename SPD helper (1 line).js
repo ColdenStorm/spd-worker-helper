@@ -5,8 +5,8 @@
 // @description  Worker panel: auto-send greeting (take ticket), topic select, close ticket, log to Google Sheets, show all active tickets with timers
 // @match        *://spdchat.ru/*
 // @match        *://*.spdchat.ru/*
-// @updateURL    https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(1%20line).txt
-// @downloadURL  https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(1%20line).txt
+// @updateURL    https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(1%20line).js
+// @downloadURL  https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/refs/heads/main/SPD%20helper%20(1%20line).js
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
@@ -1121,4 +1121,5 @@ makeDraggable(panel, drag);
   }, 200);
 
 })();
+
 
