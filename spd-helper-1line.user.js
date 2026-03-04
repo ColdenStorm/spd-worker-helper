@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SPD helper (Modified)
 // @namespace    spdchat-helper
-// @version      3.0.3
+// @version      3.0.4
 // @description  Worker panel: UI buttons, active tickets manager with cross button (no auto-send)
 // @match        *://spdchat.ru/*
 // @match        *://*.spdchat.ru/*
@@ -11,7 +11,7 @@
 
 (function () {
   "use strict";
-
+  var PANEL_ID = "spd-worker-helper-panel";
   var PANEL_ID = "spd-worker-helper-panel";
   var DOCK_BTN_ID = "spd-worker-dock-btn";
   var DOCK_STATE_KEY = "spd_worker_panel_docked";
@@ -827,5 +827,6 @@
   }, 200);
 
 })();
+
 
 
