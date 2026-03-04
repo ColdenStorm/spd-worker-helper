@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         SPD helper (Modified)
 // @namespace    spdchat-helper
-// @version      3.0.4
+// @version      3.0.3
 // @description  Worker panel: UI buttons, active tickets manager with cross button (no auto-send)
 // @match        *://spdchat.ru/*
 // @match        *://*.spdchat.ru/*
@@ -827,4 +827,5 @@
   }, 200);
 
 })();
+
 
