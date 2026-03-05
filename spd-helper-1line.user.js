@@ -1,27 +1,30 @@
 // ==UserScript==
-// @name         SPD helper (Modified)
+// @name         SPD helper (1 line)
 // @namespace    spdchat-helper
 // @version      3.0.3
-// @description  Worker panel: UI buttons, active tickets manager with cross button (no auto-send)
+// @description  Worker panel: auto-send greeting (take ticket), topic select, close ticket, log to Google Sheets, show all active tickets with timers
 // @match        *://spdchat.ru/*
 // @match        *://*.spdchat.ru/*
+// @updateURL    https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/main/spd-helper-1line.user.js
+// @downloadURL  https://raw.githubusercontent.com/ColdenStorm/spd-worker-helper/main/spd-helper-1line.user.js
 // @run-at       document-idle
 // @grant        none
 // ==/UserScript==
 
 (function () {
   "use strict";
-  
+//1233
   var PANEL_ID = "spd-worker-helper-panel";
-  var DOCK_BTN_ID = "spd-worker-dock-btn";
-  var DOCK_STATE_KEY = "spd_worker_panel_docked";
+
+var DOCK_BTN_ID = "spd-worker-dock-btn";
+var DOCK_STATE_KEY = "spd_worker_panel_docked"; // "1" = docked (hidden), "0" = shown
+
 
   var STORE_KEY = "spd_worker_name";
   var POS_KEY = "spd_worker_panel_pos_v1";
 
   // Настройка имён
   var WORKER_NAMES = ["Артём", "Вадим", "Вячеслав", "Павел"];
-
   function norm(s) {
     return (s || "").replace(/\s+/g, " ").replace(/^\s+|\s+$/g, "");
   }
@@ -38,7 +41,6 @@
     function pad(n) { return (n < 10 ? "0" : "") + n; }
     return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
   }
-
   function getGreeting() {
     var d = new Date();
     var m = d.getHours() * 60 + d.getMinutes();
@@ -47,25 +49,24 @@
     return "Добрый вечер";
   }
 
-  var _workerNameMem = "";
+  // Worker name is stored only in-memory for this page load (asks again after reload)
+var _workerNameMem = "";
 
-  function getWorkerName() {
-    for (var i = 0; i < WORKER_NAMES.length; i++) {
-      if (WORKER_NAMES[i] === _workerNameMem) return _workerNameMem;
-    }
-    return "";
-  }
+function getWorkerName() {
+  for (var i = 0; i < WORKER_NAMES.length; i++) if (WORKER_NAMES[i] === _workerNameMem) return _workerNameMem;
+  return "";
+}
 
-  function setWorkerName(name) {
-    for (var i = 0; i < WORKER_NAMES.length; i++) {
-      if (WORKER_NAMES[i] === name) {
-        _workerNameMem = name;
-        return;
-      }
+function setWorkerName(name) {
+  for (var i = 0; i < WORKER_NAMES.length; i++) {
+    if (WORKER_NAMES[i] === name) {
+      _workerNameMem = name;
+      return;
     }
   }
+}
 
-  function ensureWorkerName() {
+function ensureWorkerName() {
     return getWorkerName();
   }
 
@@ -76,75 +77,80 @@
     );
   }
 
-  function showWorkerModal() {
-    if (document.getElementById("spd-worker-modal")) return;
-    if (!document.body) return;
 
-    var overlay = document.createElement("div");
-    overlay.id = "spd-worker-modal";
-    overlay.style.cssText =
-      "position:fixed;left:50%;top:14px;transform:translateX(-50%);" +
-      "z-index:2147483647;background:rgba(20,22,30,.96);" +
-      "border:1px solid rgba(255,255,255,.14);border-radius:14px;" +
-      "box-shadow:0 14px 40px rgba(0,0,0,.45);" +
-      "padding:10px 12px;min-width:320px;max-width:520px;color:#fff;" +
-      "font:12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;";
 
-    var title = document.createElement("div");
-    title.textContent = "Выбери имя сотрудника (после перезагрузки спросит снова):";
-    title.style.cssText = "margin:0 0 8px 0;opacity:.95;font-weight:700;";
+function showWorkerModal() {
+  if (document.getElementById("spd-worker-modal")) return;
 
-    var row = document.createElement("div");
-    row.style.cssText = "display:flex;gap:8px;align-items:center;";
+  if (!document.body) return;
 
-    var sel = document.createElement("select");
-    sel.style.cssText =
-      "flex:1;min-width:160px;padding:7px 10px;border-radius:10px;" +
-      "border:1px solid rgba(255,255,255,.18);background:#1f2330;color:#fff;outline:none;" +
-      "font:600 13px system-ui;";
+  var overlay = document.createElement("div");
+  overlay.id = "spd-worker-modal";
+  overlay.style.cssText =
+    "position:fixed;left:50%;top:14px;transform:translateX(-50%);" +
+    "z-index:2147483647;background:rgba(20,22,30,.96);" +
+    "border:1px solid rgba(255,255,255,.14);border-radius:14px;" +
+    "box-shadow:0 14px 40px rgba(0,0,0,.45);" +
+    "padding:10px 12px;min-width:320px;max-width:520px;color:#fff;" +
+    "font:12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Arial;";
 
-    for (var i = 0; i < WORKER_NAMES.length; i++) {
-      var opt = document.createElement("option");
-      opt.value = WORKER_NAMES[i];
-      opt.textContent = WORKER_NAMES[i];
-      sel.appendChild(opt);
-    }
+  var title = document.createElement("div");
+  title.textContent = "Выбери имя сотрудника (после перезагрузки спросит снова):";
+  title.style.cssText = "margin:0 0 8px 0;opacity:.95;font-weight:700;";
 
-    var ok = document.createElement("button");
-    ok.type = "button";
-    ok.textContent = "OK";
-    ok.style.cssText =
-      "padding:7px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);" +
-      "background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font:800 13px system-ui;";
+  var row = document.createElement("div");
+  row.style.cssText = "display:flex;gap:8px;align-items:center;";
 
-    ok.addEventListener("click", function () {
-      setWorkerName(sel.value);
-      try { overlay.parentNode && overlay.parentNode.removeChild(overlay); } catch (e) { overlay.style.display = "none"; }
-      try {
-        if (window.__SPD_PANEL_API__) {
-          window.__SPD_PANEL_API__.updateActionButtonsState();
-          window.__SPD_PANEL_API__.updateCloseState();
-          window.__SPD_PANEL_API__.renderActiveList();
-        }
-      } catch (e2) {}
-    });
+  var sel = document.createElement("select");
+  sel.style.cssText =
+    "flex:1;min-width:160px;padding:7px 10px;border-radius:10px;" +
+    "border:1px solid rgba(255,255,255,.18);background:#1f2330;color:#fff;outline:none;" +
+    "font:600 13px system-ui;";
 
-    row.appendChild(sel);
-    row.appendChild(ok);
-    overlay.appendChild(title);
-    overlay.appendChild(row);
-
-    document.body.appendChild(overlay);
+  for (var i = 0; i < WORKER_NAMES.length; i++) {
+    var opt = document.createElement("option");
+    opt.value = WORKER_NAMES[i];
+    opt.textContent = WORKER_NAMES[i];
+    sel.appendChild(opt);
   }
 
-  function ensureWorkerPicked() {
-    if (getWorkerName()) { window.__SPD_WORKER_READY__ = true; return true; }
-    window.__SPD_WORKER_READY__ = false;
-    showWorkerModal();
-    return false;
-  }
+  var ok = document.createElement("button");
+  ok.type = "button";
+  ok.textContent = "OK";
+  ok.style.cssText =
+    "padding:7px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);" +
+    "background:rgba(255,255,255,.12);color:#fff;cursor:pointer;font:800 13px system-ui;";
+
+  ok.addEventListener("click", function () {
+    setWorkerName(sel.value);
+    try { overlay.parentNode && overlay.parentNode.removeChild(overlay); } catch (e) { overlay.style.display = "none"; }
+    try {
+      if (window.__SPD_PANEL_API__) {
+        window.__SPD_PANEL_API__.updateActionButtonsState();
+        window.__SPD_PANEL_API__.updateCloseState();
+        window.__SPD_PANEL_API__.renderActiveList();
+      }
+    } catch (e2) {}
+  });
+
+  row.appendChild(sel);
+  row.appendChild(ok);
+
+  overlay.appendChild(title);
+  overlay.appendChild(row);
+
+  document.body.appendChild(overlay);
+}
+
+function ensureWorkerPicked() {
+  if (getWorkerName()) { window.__SPD_WORKER_READY__ = true; return true; }
+  window.__SPD_WORKER_READY__ = false;
+  showWorkerModal();
+  return false;
+}
 
   function clickSendButton() {
+    // твоя сборка: div role=button
     var actions = document.querySelector(".mx_MessageComposer_actions");
     if (actions) {
       var btnA = actions.querySelector('div[role="button"].mx_MessageComposer_sendMessage');
@@ -163,6 +169,7 @@
       btn.click();
       return true;
     }
+
     return false;
   }
 
@@ -280,97 +287,137 @@
     btn.style.cursor = disabled ? "not-allowed" : "pointer";
   }
 
+  function makeDangerBtn(label, onClick) {
+    var b = document.createElement("button");
+    b.textContent = label;
+    b.title = "Убрать панель";
+    b.style.cssText =
+      "border:1px solid rgba(255,255,255,.12);" +
+      "border-radius:10px;padding:7px 10px;" +
+      "background:#3a2b2b;color:#fff;font:700 13px system-ui;cursor:pointer";
+    b.onclick = onClick;
+    return b;
+  }
+
+  function makeSelect(options, value, onChange, placeholder) {
+    var s = document.createElement("select");
+    s.style.cssText =
+      "border:1px solid rgba(255,255,255,.12);" +
+      "border-radius:10px;padding:7px 10px;" +
+      "background:#1f2330;color:#fff;font:600 13px system-ui;cursor:pointer";
+
+    for (var i = 0; i < options.length; i++) {
+      var o = document.createElement("option");
+      o.value = options[i];
+      if (!options[i] && placeholder) o.textContent = placeholder;
+      else o.textContent = options[i] || "—";
+      s.appendChild(o);
+    }
+
+    s.value = value;
+    s.onchange = function () { onChange(s.value); };
+    return s;
+  }
+
   function loadPos() {
     try { return JSON.parse(localStorage.getItem(POS_KEY) || "null"); } catch (e) { return null; }
   }
   function savePos(l, t) {
     localStorage.setItem(POS_KEY, JSON.stringify({ left: l, top: t }));
   }
-
-  function getDockContainer() {
-    return document.querySelector(".mx_AutoHideScrollbar.mx_SpaceTreeLevel");
+  function clearPos() {
+    localStorage.removeItem(POS_KEY);
   }
 
-  function isDocked() {
-    return localStorage.getItem(DOCK_STATE_KEY) === "1";
-  }
 
-  function setDocked(v) {
-    localStorage.setItem(DOCK_STATE_KEY, v ? "1" : "0");
-  }
+function getDockContainer() {
+  return document.querySelector(".mx_AutoHideScrollbar.mx_SpaceTreeLevel");
+}
 
-  function ensureDockButton() {
-    var host = getDockContainer();
-    if (!host) return;
-    if (document.getElementById(DOCK_BTN_ID)) return;
+function isDocked() {
+  return localStorage.getItem(DOCK_STATE_KEY) === "1";
+}
 
-    var btn = document.createElement("button");
-    btn.id = DOCK_BTN_ID;
-    btn.type = "button";
-    btn.title = "Панель SPDHelper";
-    btn.textContent = "SPD";
-    btn.style.cssText =
-      "display:block;width:44px;height:44px;margin:10px auto 0 auto;" +
-      "border-radius:14px;border:1px solid rgba(255,255,255,.18);" +
-      "background:rgba(255,255,255,.08);color:#fff;cursor:pointer;" +
-      "font:900 13px system-ui;line-height:44px;text-align:center;" +
-      "box-shadow:0 12px 28px rgba(0,0,0,.35);" +
-      "position:relative;left:8px;";
+function setDocked(v) {
+  localStorage.setItem(DOCK_STATE_KEY, v ? "1" : "0");
+}
 
-    btn.addEventListener("click", function () {
-      setDocked(!isDocked());
-      applyDockState();
-    });
+function ensureDockButton() {
+  var host = getDockContainer();
+  if (!host) return;
 
-    try {
-      var afterEl = host.querySelector('.mx_SpaceItem.mx_SpaceItem_new.collapsed');
-      if (afterEl && afterEl.parentNode === host) {
-        if (afterEl.nextSibling) {
-          host.insertBefore(btn, afterEl.nextSibling);
-        } else {
-          host.appendChild(btn);
-        }
-      } else {
-        host.appendChild(btn);
-      }
-    } catch (e) {
+  if (document.getElementById(DOCK_BTN_ID)) return;
+
+  var btn = document.createElement("button");
+  btn.id = DOCK_BTN_ID;
+  btn.type = "button";
+  btn.title = "Панель SPDHelper";
+  btn.textContent = "SPD";
+  btn.style.cssText =
+  "display:block;width:44px;height:44px;margin:10px auto 0 auto;" +
+  "border-radius:14px;border:1px solid rgba(255,255,255,.18);" +
+  "background:rgba(255,255,255,.08);color:#fff;cursor:pointer;" +
+  "font:900 13px system-ui;line-height:44px;text-align:center;" +
+  "box-shadow:0 12px 28px rgba(0,0,0,.35);" +
+  "position:relative;left:8px;";
+
+btn.addEventListener("click", function () {
+    setDocked(!isDocked());
+    applyDockState();
+  });
+
+  // put at top of the space tree column
+  try {
+  var afterEl = host.querySelector('.mx_SpaceItem.mx_SpaceItem_new.collapsed');
+  if (afterEl && afterEl.parentNode === host) {
+    if (afterEl.nextSibling) {
+      host.insertBefore(btn, afterEl.nextSibling);
+    } else {
       host.appendChild(btn);
     }
+  } else {
+    host.appendChild(btn);
+  }
+} catch (e) {
+  host.appendChild(btn);
+}
+}
+
+function applyDockState() {
+  ensureDockButton();
+  var panel = document.getElementById(PANEL_ID);
+  var btn = document.getElementById(DOCK_BTN_ID);
+
+  if (btn) {
+    // visual state
+    btn.style.opacity = isDocked() ? "0.85" : "1";
+    btn.style.outline = isDocked() ? "2px solid rgba(124,255,155,.35)" : "none";
   }
 
-  function applyDockState() {
+  if (!panel) return;
+
+  if (isDocked()) {
+    panel.style.display = "none";
+  } else {
+    panel.style.display = "block";
+  }
+}
+
+function scheduleDockInit() {
+  var tries = 0;
+  var t = setInterval(function () {
+    tries++;
     ensureDockButton();
-    var panel = document.getElementById(PANEL_ID);
-    var btn = document.getElementById(DOCK_BTN_ID);
-
-    if (btn) {
-      btn.style.opacity = isDocked() ? "0.85" : "1";
-      btn.style.outline = isDocked() ? "2px solid rgba(124,255,155,.35)" : "none";
+    if (document.getElementById(DOCK_BTN_ID)) {
+      clearInterval(t);
+      applyDockState();
+    } else if (tries >= 200) { // 200 * 250ms = 50s
+      clearInterval(t);
     }
+  }, 250);
+}
 
-    if (!panel) return;
-    if (isDocked()) {
-      panel.style.display = "none";
-    } else {
-      panel.style.display = "block";
-    }
-  }
-
-  function scheduleDockInit() {
-    var tries = 0;
-    var t = setInterval(function () {
-      tries++;
-      ensureDockButton();
-      if (document.getElementById(DOCK_BTN_ID)) {
-        clearInterval(t);
-        applyDockState();
-      } else if (tries >= 200) {
-        clearInterval(t);
-      }
-    }, 250);
-  }
-
-  function removePanel() {
+function removePanel() {
     var p = document.getElementById(PANEL_ID);
     if (p && p.parentNode) p.parentNode.removeChild(p);
   }
@@ -408,25 +455,33 @@
     };
   }
 
+  // ===== Keep panel visible on window resize =====
   function ensurePanelVisible() {
     var panel = document.getElementById(PANEL_ID);
     if (!panel) return;
 
     var r = panel.getBoundingClientRect();
+
+    // If panel is hidden by docking, skip adjustments
     if (panel.style.display === "none") return;
 
     var l = r.left;
     var t = r.top;
 
+    // If panel uses right/bottom anchoring (no left/top), do nothing
+    // but in our script we usually set left/top when dragging.
+    // We'll still correct if it is out of view.
     var maxL = window.innerWidth - r.width - 6;
     var maxT = window.innerHeight - r.height - 6;
 
+    // If viewport is smaller than panel, keep at (6,6)
     if (maxL < 6) maxL = 6;
     if (maxT < 6) maxT = 6;
 
     var newL = clamp(l, 6, maxL);
     var newT = clamp(t, 6, maxT);
 
+    // Only move if needed
     if (Math.abs(newL - l) > 0.5 || Math.abs(newT - t) > 0.5) {
       panel.style.left = newL + "px";
       panel.style.top = newT + "px";
@@ -441,11 +496,16 @@
     var h = Math.floor(sec / 3600);
     var m = Math.floor((sec % 3600) / 60);
     var s = sec % 60;
+
     function pad(n) { return (n < 10 ? "0" : "") + n; }
+
     if (h > 0) return h + ":" + pad(m) + ":" + pad(s);
     return m + ":" + pad(s);
   }
 
+
+
+  // ===== Shared: anti-double-take (greeting claim TTL) =====
   function getTimelineRoot() {
     return (
       document.querySelector(".mx_RoomView_messagePanel") ||
@@ -457,11 +517,26 @@
   }
 
   function isSupportGreetingText(t) {
-    t = norm(t).toLowerCase();
+    t = norm(t).toLowerCase().replace(/ё/g, "е");
     if (!t) return false;
+
     if (t.indexOf("тех поддержка") === -1) return false;
-    return true;
+
+    // 1) классическое приветствие: "Доброе утро/день/вечер, <имя>, тех поддержка."
+    if (t.indexOf("доброе утро") === 0 ||
+        t.indexOf("добрый день") === 0 ||
+        t.indexOf("добрый вечер") === 0) return true;
+
+    // 2) формат "Задача": "<имя>, тех поддержка."
+    for (var i = 0; i < WORKER_NAMES.length; i++) {
+      var wn = String(WORKER_NAMES[i] || "").toLowerCase().replace(/ё/g, "е");
+      if (!wn) continue;
+      if (t.indexOf(wn + ",") === 0) return true;
+    }
+
+    return false;
   }
+
 
   function parseTileTs(tile) {
     var timeEl =
@@ -477,6 +552,7 @@
         var msIso = Date.parse(dt);
         if (msIso) return msIso;
       }
+
       var txt = norm(timeEl.textContent || "");
       var m = txt.match(/(\d{1,2}):(\d{2})/);
       if (m) {
@@ -490,6 +566,7 @@
     return 0;
   }
 
+  // Возвращает { worker: "Имя", text: "...", ts: ms } если занято ДРУГИМ и сообщение свежее (TTL)
   function findExistingClaimInRoom(currentWorker) {
     var root = getTimelineRoot();
     if (!root) return null;
@@ -498,7 +575,7 @@
     if (!tiles || !tiles.length) return null;
 
     var nowMs = Date.now();
-    var ttlMs = 15 * 60 * 1000;
+    var ttlMs = 15 * 60 * 1000; // 15 минут
     var limit = 120;
 
     for (var i = tiles.length - 1; i >= 0 && limit-- > 0; i--) {
@@ -562,6 +639,7 @@
       panel.style.bottom = "auto";
     }
 
+    // top row
     var top = document.createElement("div");
     top.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center";
 
@@ -572,82 +650,284 @@
       "width:22px;height:28px;display:flex;align-items:center;justify-content:center;" +
       "border:1px solid rgba(255,255,255,.12);border-radius:10px;" +
       "background:#1f2330;color:#fff;font:800 16px system-ui;cursor:grab";
-
     var btnHello = makeBtn("👋 Приветствие", function () {
       if (!ensureWorkerPicked()) return;
       var worker = ensureWorkerName();
       var text = getGreeting() + ", " + worker + ", тех поддержка.";
-      handleTakeTicketAction(worker, text);
-    });
 
-    var btnZayavka = makeBtn("🧩 Заявка", function () {
-      if (!ensureWorkerPicked()) return;
-      var worker = ensureWorkerName();
-      var text = worker + ", тех поддержка.";
-      handleTakeTicketAction(worker, text);
-    });
+        // защита: если уже взято другим сотрудником
+  var claim = null;
+  try { claim = findExistingClaimInRoom(worker); } catch (eC) { claim = null; }
+  if (claim) {
+    var leftSec = Math.max(0, Math.round((15 * 60 * 1000 - (Date.now() - (claim.ts || 0))) / 1000));
+    var leftMin = Math.ceil(leftSec / 60);
+    alert("Заявку уже взял в работу: " + claim.worker + "\nTTL: ~" + leftMin + " мин.\n\n(в чате уже есть свежее приветствие техподдержки)");
+    return;
+  }
 
-    var btnArchive = makeBtn("🗂 Архив", function () {
-      if (!ensureWorkerPicked()) return;
-      var worker = ensureWorkerName();
-      var text = worker + ", тех поддержка. Сейчас найду.";
-      handleTakeTicketAction(worker, text);
-    });
 
-    var btnCloseTicket = makeBtn("✅ Закрыть", function () {
-      var roomId = getCurrentRoomId();
-      var ticket = getActiveTicket(roomId);
-      if (!ticket) return;
-
-      var ok = sendMessage("!закрыто");
-      if (!ok) return;
-
-      clearActiveTicket(roomId);
-      updateCloseState();
-      renderActiveList();
-    });
-
-    // Helper for "take ticket" logic shared among Hello, Zayavka, Archive
-    function handleTakeTicketAction(worker, textToВSend) {
-      var claim = findExistingClaimInRoom(worker);
-      if (claim) {
-        var leftSec = Math.max(0, Math.round((15 * 60 * 1000 - (Date.now() - (claim.ts || 0))) / 1000));
-        var leftMin = Math.ceil(leftSec / 60);
-        alert("Заявку уже взял в работу: " + claim.worker + "\nTTL: ~" + leftMin + " мин.");
-        return;
-      }
-
-      var ok = sendMessage(textToВSend);
+      var ok = sendMessage(text);
       if (!ok) return;
 
       var roomId = getCurrentRoomId();
       var doctor = getCurrentRoomTitle();
-      var existing = getActiveTicket(roomId);
 
-      if (!existing) {
-        var startedAt = new Date();
-        var ticket = {
-          date: yyyyMmDd(startedAt),
-          taken_at: startedAt.toISOString(),
-          worker_name: worker,
-          doctor_fio: doctor,
-          room_id: roomId
-        };
-        setActiveTicket(roomId, ticket);
+        function getTimelineRoot() {
+  return (
+    document.querySelector(".mx_RoomView_messagePanel") ||
+    document.querySelector(".mx_RoomView_timeline") ||
+    document.querySelector(".mx_TimelinePanel") ||
+    document.querySelector(".mx_RoomView") ||
+    document.body
+  );
+}
+
+function isSupportGreetingText(t) {
+  t = norm(t).toLowerCase();
+  if (!t) return false;
+
+  // ключ: "тех поддержка"
+  if (t.indexOf("тех поддержка") === -1) return false;
+
+  // начинается на приветствие
+  if (t.indexOf("доброе утро") !== 0 &&
+      t.indexOf("добрый день") !== 0 &&
+      t.indexOf("добрый вечер") !== 0) return false;
+
+  return true;
+}
+
+function parseTileTs(tile) {
+  // Try to extract message timestamp (Element usually renders <time datetime="..."> or text like 12:34)
+  var timeEl =
+    tile.querySelector("time[datetime]") ||
+    tile.querySelector(".mx_MessageTimestamp time[datetime]") ||
+    tile.querySelector(".mx_MessageTimestamp") ||
+    null;
+
+  if (timeEl) {
+    // 1) ISO datetime in attribute
+    var dt = "";
+    try { dt = timeEl.getAttribute && timeEl.getAttribute("datetime") ? timeEl.getAttribute("datetime") : ""; } catch (e) { dt = ""; }
+    if (dt) {
+      var msIso = Date.parse(dt);
+      if (msIso) return msIso;
+    }
+
+    // 2) Fallback: try parse HH:MM from text (today)
+    var txt = norm(timeEl.textContent || "");
+    var m = txt.match(/(\d{1,2}):(\d{2})/);
+    if (m) {
+      var d = new Date();
+      d.setSeconds(0); d.setMilliseconds(0);
+      d.setHours(parseInt(m[1], 10));
+      d.setMinutes(parseInt(m[2], 10));
+      return d.getTime();
+    }
+  }
+
+  return 0;
+}
+
+// Возвращает { worker: "Имя", text: "...", ts: ms } если занято ДРУГИМ и сообщение свежее (TTL)
+function findExistingClaimInRoom(currentWorker) {
+  var root = getTimelineRoot();
+  if (!root) return null;
+
+  // сообщения в Element обычно в mx_EventTile
+  var tiles = root.querySelectorAll(".mx_EventTile");
+  if (!tiles || !tiles.length) return null;
+
+  var nowMs = Date.now();
+  var ttlMs = 15 * 60 * 1000; // 15 минут
+  var limit = 120; // проверяем последние N сообщений
+
+  for (var i = tiles.length - 1; i >= 0 && limit-- > 0; i--) {
+    var tile = tiles[i];
+
+    // текст сообщения
+    var body =
+      tile.querySelector(".mx_EventTile_body") ||
+      tile.querySelector(".mx_MTextBody") ||
+      tile.querySelector(".mx_EventTile_line") ||
+      null;
+
+    var text = norm(body ? body.textContent : "");
+    if (!isSupportGreetingText(text)) continue;
+
+    // время сообщения (если не получилось определить — считаем что оно старое и НЕ блокируем)
+    var ts = parseTileTs(tile);
+    if (!ts) continue;
+
+    if (nowMs - ts > ttlMs) {
+      // приветствие старое — не блокируем
+      continue;
+    }
+
+    // имя отправителя
+    var senderEl =
+      tile.querySelector(".mx_DisambiguatedProfile_displayName") ||
+      tile.querySelector(".mx_EventTile_sender") ||
+      tile.querySelector(".mx_SenderProfile_displayName") ||
+      null;
+
+    var sender = norm(senderEl ? senderEl.textContent : "");
+    if (!sender) continue;
+
+    // ищем совпадение с WORKER_NAMES
+    var matchedWorker = "";
+    for (var w = 0; w < WORKER_NAMES.length; w++) {
+      var wn = WORKER_NAMES[w];
+      if (sender === wn || sender.indexOf(wn) !== -1) {
+        matchedWorker = wn;
+        break;
       }
+    }
+    if (!matchedWorker) continue;
+
+    if (matchedWorker !== currentWorker) {
+      return { worker: matchedWorker, text: text, ts: ts };
+    }
+
+    // если это текущий — ок, не блокируем
+    return null;
+  }
+
+  return null;
+}
+
+
+
+      var startedAt = new Date();
+      var ticket = {
+        date: yyyyMmDd(startedAt),
+        taken_at: startedAt.toISOString(),
+        worker_name: worker,
+        doctor_fio: doctor,
+        room_id: roomId
+      };
+
+      setActiveTicket(roomId, ticket);
+      updateCloseState();
+      renderActiveList();
+    });
+
+
+
+
+var btnTask = makeBtn("🧩 Задача", function () {
+  if (!ensureWorkerPicked()) return;
+
+  var worker = ensureWorkerName();
+  if (!worker) return;
+
+  // защита: если уже взято другим сотрудником (свежее сообщение техподдержки)
+  var claim = null;
+  try { claim = findExistingClaimInRoom(worker); } catch (eC) { claim = null; }
+  if (claim) {
+    var leftSec = Math.max(0, Math.round((15 * 60 * 1000 - (Date.now() - (claim.ts || 0))) / 1000));
+    var leftMin = Math.ceil(leftSec / 60);
+    alert("Заявку уже взял в работу: " + claim.worker + "~" + leftMin + " мин.");
+    return;
+  }
+
+  // Сообщение без приветствия
+  var ok = sendMessage(worker + ", тех поддержка.");
+  if (!ok) return;
+
+  var roomId = getCurrentRoomId();
+  var doctor = getCurrentRoomTitle();
+
+  // ✅ берём в работу: создаём тикет/таймер и включаем "Закрыть"
+  var existing = getActiveTicket(roomId);
+  if (!existing) {
+    var startedAt = new Date();
+    var ticket = {
+      date: yyyyMmDd(startedAt),
+      taken_at: startedAt.toISOString(),
+      worker_name: worker,
+      doctor_fio: doctor,
+      room_id: roomId
+    };
+    setActiveTicket(roomId, ticket);
+  }
+
+  updateCloseState();
+  renderActiveList();
+  tickTimers();
+});
+
+
+var btnArchive = makeBtn("📂 Архив", function () {
+  if (!ensureWorkerPicked()) return;
+
+  var worker = ensureWorkerName();
+  if (!worker) return;
+
+  // защита: если уже взято другим сотрудником (свежее сообщение техподдержки)
+  var claim = null;
+  try { claim = findExistingClaimInRoom(worker); } catch (eC) { claim = null; }
+  if (claim) {
+    var leftSec = Math.max(0, Math.round((15 * 60 * 1000 - (Date.now() - (claim.ts || 0))) / 1000));
+    var leftMin = Math.ceil(leftSec / 60);
+    alert("Заявку уже взял в работу: " + claim.worker + "~" + leftMin + " мин.");
+    return;
+  }
+
+  // Сообщение как в "Задача" + доп. строка
+  var ok = sendMessage(worker + ", тех поддержка.\nСейчас найду");
+  if (!ok) return;
+
+  var roomId = getCurrentRoomId();
+  var doctor = getCurrentRoomTitle();
+
+  // ✅ берём в работу: создаём тикет/таймер и включаем "Закрыть"
+  var existing = getActiveTicket(roomId);
+  if (!existing) {
+    var startedAt = new Date();
+    var ticket = {
+      date: yyyyMmDd(startedAt),
+      taken_at: startedAt.toISOString(),
+      worker_name: worker,
+      doctor_fio: doctor,
+      room_id: roomId
+    };
+    setActiveTicket(roomId, ticket);
+  }
+
+  updateCloseState();
+  renderActiveList();
+  tickTimers();
+});
+
+var btnCloseTicket = makeBtn("✅ !закрыто", function () {
+      var roomId = getCurrentRoomId();
+      var ticket = getActiveTicket(roomId);
+      if (!ticket) return;
+
+      try { sendMessage("!закрыто"); } catch (eSend) {}
+
+      clearActiveTicket(roomId);
 
       updateCloseState();
       renderActiveList();
       tickTimers();
-    }
+    });
 
-    // Append buttons in the new order
+    var btnNoAnswer = makeBtn("🕔 Нет ответа", function () {
+      try { sendMessage("От вас долго не поступало ответа, напишите нам, как освободитесь"); } catch (eSend) {}
+    });
+
+
+
     top.appendChild(drag);
     top.appendChild(btnHello);
-    top.appendChild(btnZayavka);
+    top.appendChild(btnTask);
     top.appendChild(btnArchive);
+    top.appendChild(btnNoAnswer);
     top.appendChild(btnCloseTicket);
 
+    // active list
     var listTitle = document.createElement("div");
     listTitle.style.cssText = "color:#fff;font:700 12px system-ui;opacity:.9;margin-top:6px";
     listTitle.textContent = "Активные заявки";
@@ -656,26 +936,27 @@
     list.style.cssText =
       "display:flex;flex-direction:column;gap:6px;" +
       "border:1px solid rgba(255,255,255,.10);border-radius:12px;" +
-      "padding:8px;background:rgba(31,35,48,.55);margin-top:8px";
+      "padding:8px;background:rgba(31,35,48,.55)" + ";margin-top:8px";
 
     function updateActionButtonsState() {
-      var ready = !!getWorkerName();
-      setBtnDisabled(btnHello, !ready);
-      setBtnDisabled(btnZayavka, !ready);
-      setBtnDisabled(btnArchive, !ready);
-    }
+  var ready = !!getWorkerName();
+  setBtnDisabled(btnHello, !ready);
+  setBtnDisabled(btnTask, !ready);
+  setBtnDisabled(btnArchive, !ready);
+}
 
-    function updateCloseState() {
-      var roomId = getCurrentRoomId();
-      var ticket = getActiveTicket(roomId);
-      setBtnDisabled(btnCloseTicket, !ticket);
-    }
+function updateCloseState() {
+  var roomId = getCurrentRoomId();
+  var ticket = getActiveTicket(roomId);
+  setBtnDisabled(btnCloseTicket, !ticket);
+}
+// expose panel API so picker (outside panel scope) can refresh UI safely
+window.__SPD_PANEL_API__ = {
+  renderActiveList: renderActiveList,
+  updateCloseState: updateCloseState,
+  updateActionButtonsState: updateActionButtonsState
+};
 
-    window.__SPD_PANEL_API__ = {
-      renderActiveList: renderActiveList,
-      updateCloseState: updateCloseState,
-      updateActionButtonsState: updateActionButtonsState
-    };
 
     function navigateToRoom(roomId) {
       if (!roomId) return;
@@ -683,6 +964,7 @@
     }
 
     function renderActiveList() {
+      // очистка
       while (list.firstChild) list.removeChild(list.firstChild);
 
       var worker = ensureWorkerName();
@@ -697,6 +979,7 @@
         items.push(t);
       }
 
+      // сортировка по taken_at (старые сверху)
       items.sort(function (a, b) {
         var ta = Date.parse(a.taken_at || "") || 0;
         var tb = Date.parse(b.taken_at || "") || 0;
@@ -738,28 +1021,30 @@
           right.style.cssText = "display:flex;gap:6px;align-items:center;flex-shrink:0";
 
           var btnGo = makeMiniBtn("↗", "Перейти в чат", function () {
-            navigateToRoom(ticket.room_id || "");
-          });
+      navigateToRoom(ticket.room_id || "");
+    });
 
-          // Кнопка-крестик: только удаляет тикет из панели
-          var btnRemove = makeMiniBtn("✖", "Удалить из списка", function () {
-            clearActiveTicket(ticket.room_id || "");
-            updateCloseState();
-            renderActiveList();
-          });
-          btnRemove.style.background = "#3a2b2b"; // Делаем её слегка красноватой
+    var btnMiniClose = makeMiniBtn("✖", "Закрыть заявку (только таймер, без сообщения)", function () {
+      try {
+        clearActiveTicket(ticket.room_id || "");
+      } catch (e) {}
+      try { updateCloseState(); } catch (e2) {}
+      try { renderActiveList(); } catch (e3) {}
+    });
 
-          right.appendChild(btnGo);
-          right.appendChild(btnRemove);
+    right.appendChild(btnGo);
+    right.appendChild(btnMiniClose);
 
           row.appendChild(left);
           row.appendChild(right);
+
           list.appendChild(row);
         })(items[i]);
       }
     }
 
     function tickTimers() {
+      // обновляем таймеры по DOM элементам
       var timers = list.querySelectorAll("[data-taken-at]");
       var now = Date.now();
       for (var i = 0; i < timers.length; i++) {
@@ -792,9 +1077,10 @@
 
     scheduleDockInit();
     applyDockState();
-    makeDraggable(panel, drag);
-
+makeDraggable(panel, drag);
+    // keep panel inside viewport on resize
     try { window.addEventListener("resize", ensurePanelVisible); } catch (eR) {}
+    // and also run once right now
     setTimeout(ensurePanelVisible, 50);
     ensureWorkerPicked();
     updateActionButtonsState();
@@ -802,8 +1088,10 @@
     renderActiveList();
     tickTimers();
 
+    // обновление таймеров раз в 1 секунду
     setInterval(tickTimers, 1000);
 
+    // при смене комнаты обновляем доступность закрытия
     window.addEventListener("hashchange", function () {
       setTimeout(function () {
         ensureWorkerPicked();
@@ -812,6 +1100,7 @@
       }, 150);
     });
 
+    // если localStorage меняется (другой таб/окно) — перерисуем
     window.addEventListener("storage", function (e) {
       if (e && e.key === "spd_active_tickets_v1") renderActiveList();
     });
@@ -827,6 +1116,13 @@
   }, 200);
 
 })();
+
+
+
+
+
+
+
 
 
 
